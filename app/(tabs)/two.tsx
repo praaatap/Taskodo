@@ -7,6 +7,8 @@ import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
 import { Calendar } from 'react-native-calendars';
 import { useTasks } from '../../context/TaskContext';
 
+import { ShowcaseStep } from '../../components/Showcase';
+
 export default function CalendarScreen() {
   const { tasks, selectedDate, setSelectedDate, toggleTask } = useTasks();
 
@@ -69,35 +71,42 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInUp} style={styles.calendarCard}>
-          <Calendar
-            current={selectedDate}
-            onDayPress={(day: any) => setSelectedDate(day.dateString)}
-            markedDates={markedDates}
-            theme={{
-              backgroundColor: '#ffffff',
-              calendarBackground: '#ffffff',
-              textSectionTitleColor: '#9CA3AF',
-              selectedDayBackgroundColor: '#6366F1',
-              selectedDayTextColor: '#ffffff',
-              todayTextColor: '#6366F1',
-              dayTextColor: '#1F2937',
-              textDisabledColor: '#E5E7EB',
-              dotColor: '#6366F1',
-              selectedDotColor: '#ffffff',
-              arrowColor: '#6366F1',
-              monthTextColor: '#1F2937',
-              indicatorColor: '#6366F1',
-              textDayFontWeight: '600',
-              textMonthFontWeight: '800',
-              textDayHeaderFontWeight: '700',
-              textDayFontSize: 14,
-              textMonthFontSize: 16,
-              textDayHeaderFontSize: 11,
-            }}
-            enableSwipeMonths={true}
-          />
-        </Animated.View>
+        <ShowcaseStep
+          id="calendar-week"
+          title="Visual Planner"
+          description="See your workload at a glance. Priorities are color-coded."
+        >
+          <Animated.View entering={FadeInUp} style={styles.calendarCard}>
+            <Calendar
+              current={selectedDate}
+              onDayPress={(day: any) => setSelectedDate(day.dateString)}
+              markedDates={markedDates}
+              // ... props
+              theme={{
+                backgroundColor: '#ffffff',
+                calendarBackground: '#ffffff',
+                textSectionTitleColor: '#9CA3AF',
+                selectedDayBackgroundColor: '#6366F1',
+                selectedDayTextColor: '#ffffff',
+                todayTextColor: '#6366F1',
+                dayTextColor: '#1F2937',
+                textDisabledColor: '#E5E7EB',
+                dotColor: '#6366F1',
+                selectedDotColor: '#ffffff',
+                arrowColor: '#6366F1',
+                monthTextColor: '#1F2937',
+                indicatorColor: '#6366F1',
+                textDayFontWeight: '600',
+                textMonthFontWeight: '800',
+                textDayHeaderFontWeight: '700',
+                textDayFontSize: 14,
+                textMonthFontSize: 16,
+                textDayHeaderFontSize: 11,
+              }}
+              enableSwipeMonths={true}
+            />
+          </Animated.View>
+        </ShowcaseStep>
 
         <View style={styles.agendaSection}>
           <View style={styles.agendaHeader}>

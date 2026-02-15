@@ -3,9 +3,10 @@
 [![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
 [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Reanimated](https://img.shields.io/badge/Reanimated-1572B6?style=for-the-badge&logo=curseforge&logoColor=white)](https://docs.swmansion.com/react-native-reanimated/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-Taskodo is a premium, high-performance productivity suite built for individuals who demand clarity and mastery over their daily flow. It combines task management, habit tracking, and deep focus tools into a single, beautifully designed mobile experience.
+Taskodo is a professional-grade productivity architecture built on top of the Expo ecosystem. It leverages cutting-edge mobile technologies to deliver a high-performance experience that manages tasks, tracks habits, and facilitates deep work sessions through a premium, gesture-driven interface.
 
 ## Table of Contents
 - [Screenshots](#screenshots)

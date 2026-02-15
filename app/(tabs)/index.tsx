@@ -15,10 +15,12 @@ import { useTasks, TaskPriority, TaskCategory } from '@/context/TaskContext';
 import { SwipeableTaskRow } from '@/components/SwipeableTaskRow';
 import { AddTaskSheet } from '@/components/AddTaskSheet';
 import { useToast } from '@/context/ToastContext';
+import { ShowcaseStep, useShowcase } from '@/components/Showcase';
 
 export default function TodoScreen() {
   const { tasks, selectedDate, setSelectedDate, addTask, toggleTask, deleteTask, toggleSubtask } = useTasks();
   const { showToast } = useToast();
+  const { startTour } = useShowcase();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
 
@@ -52,20 +54,39 @@ export default function TodoScreen() {
   return (
     <View style={styles.safe}>
       <StatusBar style="dark" />
-
       {/* Modern Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>{formattedDate}</Text>
-          <Text style={styles.headerSubtitle}>{todaysTasks.length} tasks</Text>
-        </View>
+        <ShowcaseStep
+          id="header-date"
+          title="Daily Clarity"
+          description="View your tasks for today or swipe the calendar to plan ahead."
+        >
+          <View>
+            <Text style={styles.headerTitle}>{formattedDate}</Text>
+            <Text style={styles.headerSubtitle}>{todaysTasks.length} tasks</Text>
+          </View>
+        </ShowcaseStep>
+
         <View style={styles.headerRight}>
           <Pressable
-            onPress={() => setGroupByCategory(!groupByCategory)}
-            style={[styles.iconBtn, groupByCategory && styles.iconBtnActive]}
+            onPress={startTour}
+            style={styles.iconBtn}
           >
-            <Feather name="layers" size={20} color={groupByCategory ? '#6366F1' : '#6B7280'} />
+            <Feather name="help-circle" size={20} color="#6B7280" />
           </Pressable>
+          <ShowcaseStep
+            id="category-toggle"
+            title="Smart Grouping"
+            description="Toggle this to instantly organize your tasks by category (Work, Home, etc.)."
+          >
+            <Pressable
+              onPress={() => setGroupByCategory(!groupByCategory)}
+              style={[styles.iconBtn, groupByCategory && styles.iconBtnActive]}
+            >
+              <Feather name="layers" size={20} color={groupByCategory ? '#6366F1' : '#6B7280'} />
+            </Pressable>
+          </ShowcaseStep>
+
           <Pressable
             onPress={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
             style={styles.todayBtn}
@@ -132,23 +153,29 @@ export default function TodoScreen() {
       </ScrollView>
 
       {/* FAB - Material Design 3 Style */}
-      <Pressable
-        onPress={() => setSheetVisible(true)}
-        style={({ pressed }) => [
-          styles.fab,
-          pressed && { transform: [{ scale: 0.95 }] }
-        ]}
+      <ShowcaseStep
+        id="add-task-fab"
+        title="Create Magic"
+        description="Tap here to add a new task, set its priority, and break it into subtasks."
       >
-        <LinearGradient
-          colors={['#6366F1', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
+        <Pressable
+          onPress={() => setSheetVisible(true)}
+          style={({ pressed }) => [
+            styles.fab,
+            pressed && { transform: [{ scale: 0.95 }] }
+          ]}
         >
-          <Feather name="plus" size={28} color="#FFF" />
-          <Text style={styles.fabText}>New Task</Text>
-        </LinearGradient>
-      </Pressable>
+          <LinearGradient
+            colors={['#6366F1', '#8B5CF6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Feather name="plus" size={28} color="#FFF" />
+            <Text style={styles.fabText}>New Task</Text>
+          </LinearGradient>
+        </Pressable>
+      </ShowcaseStep>
 
       <AddTaskSheet
         visible={sheetVisible}

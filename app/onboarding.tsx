@@ -1,5 +1,4 @@
-
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
     Dimensions,
     FlatList,
@@ -26,7 +25,7 @@ import Animated, {
     withSpring,
     Easing,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useShowcase } from '@/components/Showcase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -156,12 +155,10 @@ function HeroIcon({ icon, accent, accentBg }: { icon: keyof typeof Feather.glyph
 function Slide({ item, index }: { item: SlideData; index: number }) {
     return (
         <View style={[styles.slide, { width }]}>
-            {/* Floating decorative icons */}
             <FloatingIcon icon={item.decorIcons[0]} delay={0} x={width * 0.08} y={height * 0.06} size={20} />
             <FloatingIcon icon={item.decorIcons[1]} delay={300} x={width * 0.7} y={height * 0.03} size={18} />
             <FloatingIcon icon={item.decorIcons[2]} delay={600} x={width * 0.55} y={height * 0.32} size={16} />
 
-            {/* Hero icon */}
             <HeroIcon icon={item.icon} accent={item.accent} accentBg={item.accentBg} />
 
             <Animated.Text
@@ -182,6 +179,7 @@ function Slide({ item, index }: { item: SlideData; index: number }) {
 
 export default function OnboardingScreen() {
     const insets = useSafeAreaInsets();
+    const { startTour } = useShowcase();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
@@ -201,6 +199,13 @@ export default function OnboardingScreen() {
         } else {
             router.replace('/(tabs)');
         }
+    };
+
+    const handleStartTour = () => {
+        router.replace('/(tabs)');
+        setTimeout(() => {
+            startTour();
+        }, 800);
     };
 
     const handleSkip = () => {
@@ -255,7 +260,6 @@ export default function OnboardingScreen() {
                 entering={FadeInUp.delay(500)}
                 style={[styles.bottom, { paddingBottom: insets.bottom + 20 }]}
             >
-                {/* Page indicator */}
                 <View style={styles.dotsRow}>
                     {SLIDES.map((_, i) => (
                         <View
@@ -268,29 +272,36 @@ export default function OnboardingScreen() {
                     ))}
                 </View>
 
-                {/* Step counter */}
                 <Text style={styles.stepText}>
                     {activeIndex + 1} of {SLIDES.length}
                 </Text>
 
-                {/* CTA Button */}
-                <Pressable onPress={handleNext}>
-                    <LinearGradient
-                        colors={['#6366F1', '#8B5CF6']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.ctaButton}
-                    >
-                        <Text style={styles.ctaText}>
-                            {isLast ? 'Get Started' : 'Continue'}
-                        </Text>
-                        <Feather
-                            name={isLast ? 'arrow-right' : 'chevron-right'}
-                            size={20}
-                            color="#FFFFFF"
-                        />
-                    </LinearGradient>
-                </Pressable>
+                <View style={styles.ctaContainer}>
+                    {isLast && (
+                        <Pressable onPress={handleStartTour} style={styles.tourOutlineBtn}>
+                            <Feather name="play" size={18} color="#6366F1" />
+                            <Text style={styles.tourOutlineText}>Show me around</Text>
+                        </Pressable>
+                    )}
+
+                    <Pressable onPress={handleNext}>
+                        <LinearGradient
+                            colors={['#6366F1', '#8B5CF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.ctaButton, isLast && styles.ctaButtonLast]}
+                        >
+                            <Text style={styles.ctaText}>
+                                {isLast ? "Let's Go" : 'Continue'}
+                            </Text>
+                            <Feather
+                                name={isLast ? 'zap' : 'chevron-right'}
+                                size={20}
+                                color="#FFFFFF"
+                            />
+                        </LinearGradient>
+                    </Pressable>
+                </View>
             </Animated.View>
         </View>
     );
@@ -306,69 +317,80 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 24,
-        paddingBottom: 8,
+        zIndex: 10,
     },
     logoBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 14,
         gap: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     logoIcon: {
-        width: 28,
-        height: 28,
+        width: 24,
+        height: 24,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
     logoText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#1F2937',
-        letterSpacing: -0.3,
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#111827',
+        letterSpacing: -0.5,
     },
     skipBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        gap: 4,
+        paddingVertical: 8,
         paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        backgroundColor: '#F3F4F6',
     },
     skipText: {
-        fontSize: 13,
-        color: '#6B7280',
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#9CA3AF',
     },
     slide: {
         flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 36,
+        justifyContent: 'center',
+        paddingHorizontal: 40,
+        paddingTop: 60,
     },
     heroIconOuter: {
         width: 120,
         height: 120,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderRadius: 45,
+        padding: 4,
         marginBottom: 40,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 8,
     },
     heroIconInner: {
-        width: 88,
-        height: 88,
-        borderRadius: 28,
+        flex: 1,
+        borderRadius: 41,
         alignItems: 'center',
         justifyContent: 'center',
     },
     slideTitle: {
-        fontSize: 36,
+        fontSize: 34,
         fontWeight: '900',
         color: '#111827',
         textAlign: 'center',
-        marginBottom: 16,
-        letterSpacing: -1,
         lineHeight: 42,
+        marginBottom: 20,
+        letterSpacing: -1,
     },
     slideSubtitle: {
         fontSize: 16,
@@ -376,7 +398,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 26,
         fontWeight: '500',
-        paddingHorizontal: 10,
     },
     bottom: {
         paddingHorizontal: 32,
@@ -405,6 +426,10 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
+    ctaContainer: {
+        width: width - 64,
+        gap: 12,
+    },
     ctaButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -413,16 +438,35 @@ const styles = StyleSheet.create({
         paddingHorizontal: 48,
         borderRadius: 20,
         gap: 10,
-        width: width - 64,
+        width: '100%',
         shadowColor: '#6366F1',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.25,
         shadowRadius: 20,
         elevation: 10,
     },
+    ctaButtonLast: {
+        width: '100%',
+    },
     ctaText: {
         color: '#FFFFFF',
         fontSize: 17,
         fontWeight: '800',
+    },
+    tourOutlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#EEF2FF',
+        backgroundColor: '#F9FAFB',
+        gap: 10,
+    },
+    tourOutlineText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#6366F1',
     },
 });
