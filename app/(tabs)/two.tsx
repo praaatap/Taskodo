@@ -1,31 +1,335 @@
-import { StyleSheet } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { Feather } from '@expo/vector-icons';
+import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
+import { Calendar } from 'react-native-calendars';
+import { useTasks } from '../../context/TaskContext';
 
-export default function TabTwoScreen() {
+export default function CalendarScreen() {
+  const { tasks, selectedDate, setSelectedDate, toggleTask } = useTasks();
+
+  const selectedTasks = useMemo(
+    () => tasks.filter((task) => task.dueDate === selectedDate),
+    [selectedDate, tasks]
+  );
+
+  // Generate dots for the calendar
+  const markedDates = useMemo(() => {
+    const marks: any = {};
+
+    // Task indicators
+    tasks.forEach(task => {
+      if (!marks[task.dueDate]) {
+        marks[task.dueDate] = {
+          marked: true,
+          dotColor: task.priority === 'High' ? '#DC2626' : (task.priority === 'Medium' ? '#6366F1' : '#059669')
+        };
+      }
+    });
+
+    // Selected state
+    marks[selectedDate] = {
+      ...marks[selectedDate],
+      selected: true,
+      selectedColor: '#6366F1',
+      disableTouchEvent: false,
+    };
+
+    return marks;
+  }, [tasks, selectedDate]);
+
+  const stats = useMemo(() => {
+    const completed = selectedTasks.filter(t => t.completed).length;
+    return {
+      completed,
+      total: selectedTasks.length,
+      percent: selectedTasks.length > 0 ? (completed / selectedTasks.length) : 0
+    };
+  }, [selectedTasks]);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
+    <View style={styles.safe}>
+      <StatusBar style="dark" />
+
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.yearText}>{new Date(selectedDate).getFullYear()}</Text>
+          <Text style={styles.monthText}>
+            {new Date(selectedDate).toLocaleDateString(undefined, { month: 'long' })}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+          style={styles.todayBtn}
+        >
+          <Text style={styles.todayBtnText}>Today</Text>
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInUp} style={styles.calendarCard}>
+          <Calendar
+            current={selectedDate}
+            onDayPress={(day: any) => setSelectedDate(day.dateString)}
+            markedDates={markedDates}
+            theme={{
+              backgroundColor: '#ffffff',
+              calendarBackground: '#ffffff',
+              textSectionTitleColor: '#9CA3AF',
+              selectedDayBackgroundColor: '#6366F1',
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: '#6366F1',
+              dayTextColor: '#1F2937',
+              textDisabledColor: '#E5E7EB',
+              dotColor: '#6366F1',
+              selectedDotColor: '#ffffff',
+              arrowColor: '#6366F1',
+              monthTextColor: '#1F2937',
+              indicatorColor: '#6366F1',
+              textDayFontWeight: '600',
+              textMonthFontWeight: '800',
+              textDayHeaderFontWeight: '700',
+              textDayFontSize: 14,
+              textMonthFontSize: 16,
+              textDayHeaderFontSize: 11,
+            }}
+            enableSwipeMonths={true}
+          />
+        </Animated.View>
+
+        <View style={styles.agendaSection}>
+          <View style={styles.agendaHeader}>
+            <View>
+              <Text style={styles.agendaTitle}>
+                {new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'long' })}
+              </Text>
+              {selectedTasks.length > 0 && (
+                <Text style={styles.agendaSubtitle}>
+                  {stats.completed}/{stats.total} tasks completed
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {selectedTasks.length === 0 ? (
+            <Animated.View entering={FadeInUp.delay(200)} style={styles.emptyAgenda}>
+              <View style={styles.emptyIconCircle}>
+                <Feather name="coffee" size={24} color="#9CA3AF" />
+              </View>
+              <Text style={styles.emptyAgendaText}>No tasks planned. Take a break!</Text>
+            </Animated.View>
+          ) : (
+            <View style={styles.agendaList}>
+              {selectedTasks.map((task, index) => (
+                <Animated.View key={task.id} entering={FadeInRight.delay(index * 100)}>
+                  <Pressable onPress={() => toggleTask(task.id)} style={styles.agendaItem}>
+                    <View style={[styles.mark, { backgroundColor: task.priority === 'High' ? '#DC2626' : (task.priority === 'Medium' ? '#6366F1' : '#059669') }]} />
+                    <View style={styles.itemBody}>
+                      <Text style={[styles.itemText, task.completed && styles.itemTextDone]}>{task.title}</Text>
+                      <View style={styles.itemMetaRow}>
+                        <View style={[styles.categoryPill, { backgroundColor: '#F3F4F6' }]}>
+                          <Text style={styles.categoryPillText}>{task.category}</Text>
+                        </View>
+                        <Text style={styles.itemMetaDot}>•</Text>
+                        <Text style={styles.itemMeta}>{task.priority}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.checkCircle, task.completed && styles.checkCircleDone]}>
+                      {task.completed && <Feather name="check" size={12} color="#FFF" />}
+                    </View>
+                  </Pressable>
+                </Animated.View>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
+function getPriorityColor(p: string) {
+  switch (p) {
+    case 'High': return '#EF4444';
+    case 'Medium': return '#6366F1';
+    case 'Low': return '#10B981';
+    default: return '#94A3B8';
+  }
+}
+
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
+    backgroundColor: '#FAFBFF',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFBFF',
+  },
+  yearText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8B5CF6',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  monthText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1F2937',
+    marginTop: -2,
+  },
+  todayBtn: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  todayBtnText: {
+    color: '#6366F1',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  calendarCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+  },
+  agendaSection: {
+    paddingHorizontal: 24,
+    marginTop: 28,
+  },
+  agendaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  agendaTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.5,
+  },
+  agendaSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  emptyAgenda: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  emptyAgendaText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  agendaList: {
+    gap: 12,
+  },
+  agendaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  mark: {
+    width: 4,
+    height: 38,
+    borderRadius: 2,
+  },
+  itemBody: {
+    flex: 1,
+  },
+  itemText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  itemTextDone: {
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  categoryPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  categoryPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+  },
+  itemMetaDot: {
+    fontSize: 12,
+    color: '#D1D5DB',
+  },
+  itemMeta: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  checkCircleDone: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
 });
