@@ -1,13 +1,12 @@
 
 import React, { useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Dimensions, StyleSheet, View, Pressable } from 'react-native';
+import { Dimensions, StyleSheet, View, Pressable, Modal } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    withTiming,
     runOnJS,
     interpolate,
     Extrapolation,
@@ -17,8 +16,9 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface BottomSheetProps {
     children?: React.ReactNode;
-    snapPoints?: number[];
+    visible?: boolean;
     onClose?: () => void;
+    snapPoints?: number[];
 }
 
 export interface BottomSheetRef {
@@ -27,18 +27,16 @@ export interface BottomSheetRef {
 }
 
 const CustomBottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
-    ({ children, snapPoints = [-300], onClose }, ref) => {
-        const translateY = useSharedValue(0);
-        const active = useSharedValue(false);
+    ({ children, visible = false, onClose, snapPoints = [700] }, ref) => {
+        const translateY = useSharedValue(SCREEN_HEIGHT);
 
         const scrollTo = useCallback((destination: number) => {
             'worklet';
-            active.value = destination !== 0;
             translateY.value = withSpring(destination, { damping: 15, stiffness: 100 });
         }, []);
 
         const isActive = useCallback(() => {
-            return active.value;
+            return translateY.value < SCREEN_HEIGHT;
         }, []);
 
         useImperativeHandle(ref, () => ({ scrollTo, isActive }), [scrollTo, isActive]);
@@ -50,15 +48,16 @@ const CustomBottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
             })
             .onUpdate((event) => {
                 translateY.value = event.translationY + context.value.y;
-                translateY.value = Math.max(translateY.value, snapPoints[snapPoints.length - 1] - 50);
+                translateY.value = Math.max(translateY.value, SCREEN_HEIGHT - Math.max(...snapPoints));
             })
             .onEnd(() => {
-                // Find closest snap point
                 const currentY = translateY.value;
-                let closest = 0;
-                let minDiff = Math.abs(currentY - 0);
+                const points = [SCREEN_HEIGHT, ...snapPoints.map(p => SCREEN_HEIGHT - Math.abs(p))];
 
-                [0, ...snapPoints].forEach(p => {
+                let closest = SCREEN_HEIGHT;
+                let minDiff = Math.abs(currentY - SCREEN_HEIGHT);
+
+                points.forEach(p => {
                     const diff = Math.abs(currentY - p);
                     if (diff < minDiff) {
                         minDiff = diff;
@@ -66,7 +65,7 @@ const CustomBottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
                     }
                 });
 
-                if (closest === 0) {
+                if (closest === SCREEN_HEIGHT) {
                     if (onClose) runOnJS(onClose)();
                 }
                 scrollTo(closest);
@@ -75,8 +74,8 @@ const CustomBottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
         const rBottomSheetStyle = useAnimatedStyle(() => {
             const borderRadius = interpolate(
                 translateY.value,
-                [snapPoints[snapPoints.length - 1], 0],
-                [28, 5],
+                [SCREEN_HEIGHT - Math.max(...snapPoints), SCREEN_HEIGHT],
+                [32, 5],
                 Extrapolation.CLAMP
             );
 
@@ -86,71 +85,75 @@ const CustomBottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
             };
         });
 
-        const rBackdropStyle = useAnimatedStyle(() => {
-            return {
-                opacity: withTiming(active.value ? 1 : 0),
-            };
-        }, []);
-
-        const rBackdropProps = useAnimatedStyle(() => {
-            return {
-                display: translateY.value === 0 ? 'none' : 'flex',
-            };
-        });
+        // Initialize position based on visibility
+        React.useEffect(() => {
+            if (visible) {
+                scrollTo(SCREEN_HEIGHT - Math.max(...snapPoints));
+            } else {
+                scrollTo(SCREEN_HEIGHT);
+            }
+        }, [visible, snapPoints]);
 
         return (
-            <>
-                <Animated.View
-                    style={[
-                        styles.backdrop,
-                        rBackdropStyle,
-                        rBackdropProps,
-                    ]}
-                >
-                    <BlurView intensity={20} style={StyleSheet.absoluteFill}>
-                        <Pressable
-                            style={StyleSheet.absoluteFill}
-                            onPress={() => {
-                                scrollTo(0);
-                                if (onClose) onClose();
-                            }}
-                        />
-                    </BlurView>
-                </Animated.View>
-                <GestureDetector gesture={gesture}>
-                    <Animated.View
-                        style={[styles.bottomSheetContainer, rBottomSheetStyle]}
+            <Modal
+                transparent
+                visible={visible}
+                animationType="fade"
+                onRequestClose={onClose}
+            >
+                <View style={styles.modalRoot}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => {
+                            scrollTo(SCREEN_HEIGHT);
+                            if (onClose) onClose();
+                        }}
                     >
-                        <View style={styles.line} />
-                        {children}
-                    </Animated.View>
-                </GestureDetector>
-            </>
+                        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+                    </Pressable>
+
+                    <GestureDetector gesture={gesture}>
+                        <Animated.View
+                            style={[styles.bottomSheetContainer, rBottomSheetStyle]}
+                        >
+                            <View style={styles.handleContainer}>
+                                <View style={styles.line} />
+                            </View>
+                            {children}
+                        </Animated.View>
+                    </GestureDetector>
+                </View>
+            </Modal>
         );
     }
 );
 
 const styles = StyleSheet.create({
+    modalRoot: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
     bottomSheetContainer: {
         height: SCREEN_HEIGHT,
         width: '100%',
         backgroundColor: 'white',
-        position: 'absolute',
-        top: SCREEN_HEIGHT,
-        zIndex: 1000,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 20,
+        justifyContent: 'flex-end', // Add this
+    },
+    handleContainer: {
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     line: {
         width: 40,
         height: 4,
         backgroundColor: '#E5E7EB',
-        alignSelf: 'center',
-        marginVertical: 12,
         borderRadius: 2,
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        zIndex: 999,
     },
 });
 

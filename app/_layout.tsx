@@ -8,7 +8,8 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../context/ToastContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ShowcaseProvider } from '../components/Showcase';
+import { CopilotProvider } from 'react-native-copilot';
+import { TourTooltip } from '../components/TourTooltip';
 import { AnimatedSplash } from '../components/AnimatedSplash';
 
 export const unstable_settings = {
@@ -52,7 +53,19 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ShowcaseProvider>
+        <CopilotProvider
+          tooltipComponent={TourTooltip}
+          overlay="view"
+          animated={true}
+          labels={{
+            next: 'Next',
+            previous: 'back',
+            skip: 'Skip',
+            finish: 'Finish'
+          }}
+          backdropColor="rgba(0,0,0,0.8)"
+          verticalOffset={30}
+        >
           <ToastProvider>
             <Stack
               initialRouteName="onboarding"
@@ -64,9 +77,10 @@ function RootLayoutNav() {
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+
             </Stack>
           </ToastProvider>
-        </ShowcaseProvider>
+        </CopilotProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

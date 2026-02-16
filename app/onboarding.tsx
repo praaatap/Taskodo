@@ -25,8 +25,6 @@ import Animated, {
     withSpring,
     Easing,
 } from 'react-native-reanimated';
-import { useShowcase } from '@/components/Showcase';
-
 const { width, height } = Dimensions.get('window');
 
 type SlideData = {
@@ -179,7 +177,6 @@ function Slide({ item, index }: { item: SlideData; index: number }) {
 
 export default function OnboardingScreen() {
     const insets = useSafeAreaInsets();
-    const { startTour } = useShowcase();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
@@ -201,12 +198,7 @@ export default function OnboardingScreen() {
         }
     };
 
-    const handleStartTour = () => {
-        router.replace('/(tabs)');
-        setTimeout(() => {
-            startTour();
-        }, 800);
-    };
+
 
     const handleSkip = () => {
         router.replace('/(tabs)');
@@ -277,12 +269,7 @@ export default function OnboardingScreen() {
                 </Text>
 
                 <View style={styles.ctaContainer}>
-                    {isLast && (
-                        <Pressable onPress={handleStartTour} style={styles.tourOutlineBtn}>
-                            <Feather name="play" size={18} color="#6366F1" />
-                            <Text style={styles.tourOutlineText}>Show me around</Text>
-                        </Pressable>
-                    )}
+
 
                     <Pressable onPress={handleNext}>
                         <LinearGradient

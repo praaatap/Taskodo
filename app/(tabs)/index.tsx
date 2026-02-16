@@ -15,12 +15,17 @@ import { useTasks, TaskPriority, TaskCategory } from '@/context/TaskContext';
 import { SwipeableTaskRow } from '@/components/SwipeableTaskRow';
 import { AddTaskSheet } from '@/components/AddTaskSheet';
 import { useToast } from '@/context/ToastContext';
-import { ShowcaseStep, useShowcase } from '@/components/Showcase';
+import { CopilotStep, walkthroughable } from 'react-native-copilot';
+import { router } from 'expo-router';
+
+const WalkthroughableText = walkthroughable(Text);
+const WalkthroughableView = walkthroughable(View);
+const WalkthroughablePressable = walkthroughable(Pressable);
 
 export default function TodoScreen() {
   const { tasks, selectedDate, setSelectedDate, addTask, toggleTask, deleteTask, toggleSubtask } = useTasks();
   const { showToast } = useToast();
-  const { startTour } = useShowcase();
+
   const [sheetVisible, setSheetVisible] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
 
@@ -56,36 +61,33 @@ export default function TodoScreen() {
       <StatusBar style="dark" />
       {/* Modern Header */}
       <View style={styles.header}>
-        <ShowcaseStep
-          id="header-date"
-          title="Daily Clarity"
-          description="View your tasks for today or swipe the calendar to plan ahead."
+        <CopilotStep
+          text="View your tasks for today or swipe the calendar to plan ahead."
+          order={1}
+          name="header-date"
         >
-          <View>
-            <Text style={styles.headerTitle}>{formattedDate}</Text>
-            <Text style={styles.headerSubtitle}>{todaysTasks.length} tasks</Text>
-          </View>
-        </ShowcaseStep>
+          <WalkthroughableView>
+            <View>
+              <Text style={styles.headerTitle}>{formattedDate}</Text>
+              <Text style={styles.headerSubtitle}>{todaysTasks.length} tasks</Text>
+            </View>
+          </WalkthroughableView>
+        </CopilotStep>
 
         <View style={styles.headerRight}>
-          <Pressable
-            onPress={startTour}
-            style={styles.iconBtn}
+
+          <CopilotStep
+            text="Toggle this to instantly organize your tasks by category (Work, Home, etc.)."
+            order={2}
+            name="category-toggle"
           >
-            <Feather name="help-circle" size={20} color="#6B7280" />
-          </Pressable>
-          <ShowcaseStep
-            id="category-toggle"
-            title="Smart Grouping"
-            description="Toggle this to instantly organize your tasks by category (Work, Home, etc.)."
-          >
-            <Pressable
+            <WalkthroughablePressable
               onPress={() => setGroupByCategory(!groupByCategory)}
               style={[styles.iconBtn, groupByCategory && styles.iconBtnActive]}
             >
               <Feather name="layers" size={20} color={groupByCategory ? '#6366F1' : '#6B7280'} />
-            </Pressable>
-          </ShowcaseStep>
+            </WalkthroughablePressable>
+          </CopilotStep>
 
           <Pressable
             onPress={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
@@ -153,14 +155,14 @@ export default function TodoScreen() {
       </ScrollView>
 
       {/* FAB - Material Design 3 Style */}
-      <ShowcaseStep
-        id="add-task-fab"
-        title="Create Magic"
-        description="Tap here to add a new task, set its priority, and break it into subtasks."
+      <CopilotStep
+        text="Tap here to add a new task, set its priority, and break it into subtasks."
+        order={3}
+        name="add-task-fab"
       >
-        <Pressable
+        <WalkthroughablePressable
           onPress={() => setSheetVisible(true)}
-          style={({ pressed }) => [
+          style={({ pressed }: { pressed: boolean }) => [
             styles.fab,
             pressed && { transform: [{ scale: 0.95 }] }
           ]}
@@ -174,8 +176,8 @@ export default function TodoScreen() {
             <Feather name="plus" size={28} color="#FFF" />
             <Text style={styles.fabText}>New Task</Text>
           </LinearGradient>
-        </Pressable>
-      </ShowcaseStep>
+        </WalkthroughablePressable>
+      </CopilotStep>
 
       <AddTaskSheet
         visible={sheetVisible}

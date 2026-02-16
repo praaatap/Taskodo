@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, Dimensions, useColorScheme, Image } from 'react-native';
+import { StyleSheet, View, Text, Dimensions, Image } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -9,13 +9,11 @@ import Animated, {
     FadeOut
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
-
     const scale = useSharedValue(0.3);
     const opacity = useSharedValue(0);
     const textOpacity = useSharedValue(0);
@@ -54,15 +52,16 @@ export function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
         return () => clearTimeout(timeout);
     }, []);
 
-    // Theme Colors
-    const bg = isDark ? '#0F172A' : '#FFFFFF';
-    const text = isDark ? '#FFFFFF' : '#0F172A';
-    const subText = isDark ? '#94A3B8' : '#64748B';
-    const iconContainerBg = isDark ? '#1E293B' : '#FFFFFF';
-    const shadowColor = isDark ? '#8B5CF6' : '#6366F1';
+    // Splash Screen Colors (Forced light to match logo and native splash)
+    const bg = '#FFFFFF';
+    const text = '#0F172A';
+    const subText = '#64748B';
+    const iconContainerBg = '#FFFFFF';
+    const shadowColor = '#6366F1';
 
     return (
         <Animated.View style={[styles.container, { backgroundColor: bg }]} exiting={FadeOut.duration(500)}>
+            <StatusBar style="dark" />
             <View style={styles.center}>
                 <Animated.View
                     style={[

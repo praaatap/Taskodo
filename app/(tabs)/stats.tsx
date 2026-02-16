@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTasks } from '../../context/TaskContext';
-import { ShowcaseStep } from '../../components/Showcase';
+
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -99,63 +99,51 @@ export default function StatsScreen() {
                     </View>
                 </View>
 
-                <ShowcaseStep
-                    id="stats-score"
-                    title="Your Habit Score"
-                    description="Track your daily consistency with our advanced streak algorithm."
-                >
-                    <Animated.View entering={FadeInDown.delay(100)} style={styles.mainScoreCard}>
-                        <View style={styles.scoreInfo}>
-                            <Text style={styles.scoreTitle}>Current Streak</Text>
-                            <View style={styles.scoreRow}>
-                                <Text style={styles.scoreValue}>{streak}</Text>
-                                <Text style={styles.scoreUnit}>days</Text>
-                                <Feather name="zap" size={24} color="#F59E0B" style={{ marginLeft: 8 }} />
-                            </View>
-                            <Text style={styles.scoreSub}>
-                                {streak > 3 ? "You're on fire! Keep it up." : "Consistency is key."}
-                            </Text>
+                <Animated.View entering={FadeInDown.delay(100)} style={styles.mainScoreCard}>
+                    <View style={styles.scoreInfo}>
+                        <Text style={styles.scoreTitle}>Current Streak</Text>
+                        <View style={styles.scoreRow}>
+                            <Text style={styles.scoreValue}>{streak}</Text>
+                            <Text style={styles.scoreUnit}>days</Text>
+                            <Feather name="zap" size={24} color="#F59E0B" style={{ marginLeft: 8 }} />
                         </View>
-                        <ProgressRing progress={completionRate} size={100} />
-                    </Animated.View>
-                </ShowcaseStep>
+                        <Text style={styles.scoreSub}>
+                            {streak > 3 ? "You're on fire! Keep it up." : "Consistency is key."}
+                        </Text>
+                    </View>
+                    <ProgressRing progress={completionRate} size={100} />
+                </Animated.View>
 
-                <ShowcaseStep
-                    id="stats-activity"
-                    title="Weekly Breakdown"
-                    description="Visualize your productivity patterns to optimize your workflow."
-                >
-                    <Animated.View entering={FadeInDown.delay(200)} style={styles.sectionCard}>
-                        <Text style={styles.sectionTitle}>Activity Analysis</Text>
-                        <View style={styles.barsContainer}>
-                            {weeklyData.map((val, i) => {
-                                const height = (val / maxWeekly) * 100;
-                                // Calculate day label for the last 7 days
-                                const date = new Date();
-                                date.setDate(date.getDate() - (6 - i));
-                                const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
-                                const isToday = i === 6;
+                <Animated.View entering={FadeInDown.delay(200)} style={styles.sectionCard}>
+                    <Text style={styles.sectionTitle}>Activity Analysis</Text>
+                    <View style={styles.barsContainer}>
+                        {weeklyData.map((val, i) => {
+                            const height = (val / maxWeekly) * 100;
+                            // Calculate day label for the last 7 days
+                            const date = new Date();
+                            date.setDate(date.getDate() - (6 - i));
+                            const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+                            const isToday = i === 6;
 
-                                return (
-                                    <View key={i} style={styles.barCol}>
-                                        <View style={styles.barTrack}>
-                                            <View
-                                                style={[
-                                                    styles.barFill,
-                                                    { height: `${Math.max(height, 5)}%` },
-                                                    isToday && styles.barToday
-                                                ]}
-                                            />
-                                        </View>
-                                        <Text style={[styles.barLabel, isToday && styles.barLabelToday]}>
-                                            {dayLabel}
-                                        </Text>
+                            return (
+                                <View key={i} style={styles.barCol}>
+                                    <View style={styles.barTrack}>
+                                        <View
+                                            style={[
+                                                styles.barFill,
+                                                { height: `${Math.max(height, 5)}%` },
+                                                isToday && styles.barToday
+                                            ]}
+                                        />
                                     </View>
-                                );
-                            })}
-                        </View>
-                    </Animated.View>
-                </ShowcaseStep>
+                                    <Text style={[styles.barLabel, isToday && styles.barLabelToday]}>
+                                        {dayLabel}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                </Animated.View>
 
                 <View style={styles.statsRow}>
                     <Animated.View entering={FadeInDown.delay(300)} style={styles.miniCard}>

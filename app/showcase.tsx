@@ -12,8 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useShowcase, ShowcaseStep } from '@/components/Showcase';
 import { router } from 'expo-router';
+import { useCopilot } from 'react-native-copilot';
 
 const { width } = Dimensions.get('window');
 
@@ -44,13 +44,14 @@ const FEATURES = [
     },
 ];
 
+
 export default function ShowcaseScreen() {
-    const { startTour } = useShowcase();
+    const { start } = useCopilot();
 
     const handleStartTour = () => {
         router.push('/(tabs)');
         setTimeout(() => {
-            startTour();
+            start();
         }, 500);
     };
 
@@ -63,90 +64,72 @@ export default function ShowcaseScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <ShowcaseStep
-                    id="showcase-hero"
-                    title="Welcome to Taskodo"
-                    description="This is your new productivity hub. See what makes Taskodo special."
-                >
-                    <Animated.View entering={FadeInDown.duration(800)} style={styles.heroSection}>
-                        <LinearGradient
-                            colors={['#6366F1', '#8B5CF6']}
-                            style={styles.heroCard}
-                        >
-                            <View style={styles.heroContent}>
-                                <Text style={styles.heroTag}>Enterprise Ready</Text>
-                                <Text style={styles.heroTitle}>Experience the Future of Focus</Text>
-                                <Text style={styles.heroSubtitle}>
-                                    Taskodo is designed to be the most beautiful and functional productivity suite you've ever used.
-                                </Text>
+                <Animated.View entering={FadeInDown.duration(800)} style={styles.heroSection}>
+                    <LinearGradient
+                        colors={['#6366F1', '#8B5CF6']}
+                        style={styles.heroCard}
+                    >
+                        <View style={styles.heroContent}>
+                            <Text style={styles.heroTag}>Enterprise Ready</Text>
+                            <Text style={styles.heroTitle}>Experience the Future of Focus</Text>
+                            <Text style={styles.heroSubtitle}>
+                                Taskodo is designed to be the most beautiful and functional productivity suite you've ever used.
+                            </Text>
 
-                                <Pressable
-                                    onPress={() => startTour()}
-                                    style={styles.tourBtn}
-                                >
-                                    <Text style={styles.tourBtnText}>Restart Tour</Text>
-                                    <Feather name="refresh-cw" size={16} color="#6366F1" />
-                                </Pressable>
-                            </View>
-                        </LinearGradient>
-                    </Animated.View>
-                </ShowcaseStep>
+                            <Pressable
+                                onPress={handleStartTour}
+                                style={styles.tourBtn}
+                            >
+                                <Text style={styles.tourBtnText}>Restart Tour</Text>
+                                <Feather name="refresh-cw" size={16} color="#6366F1" />
+                            </Pressable>
+                        </View>
+                    </LinearGradient>
+                </Animated.View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Core Capabilities</Text>
-                    <ShowcaseStep
-                        id="showcase-features"
-                        title="Powerful Features"
-                        description="Explore our suite of tools designed to help you organize, focus, and grow."
-                    >
-                        <View style={styles.featureGrid}>
-                            {FEATURES.map((feature, index) => (
-                                <Animated.View
-                                    key={feature.title}
-                                    entering={FadeInUp.delay(200 + index * 100)}
-                                    style={styles.featureCard}
-                                >
-                                    <View style={[styles.iconBox, { backgroundColor: feature.color + '15' }]}>
-                                        <Feather name={feature.icon as any} size={24} color={feature.color} />
-                                    </View>
-                                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                                    <Text style={styles.featureDesc}>{feature.desc}</Text>
-                                </Animated.View>
-                            ))}
-                        </View>
-                    </ShowcaseStep>
+                    <View style={styles.featureGrid}>
+                        {FEATURES.map((feature, index) => (
+                            <Animated.View
+                                key={feature.title}
+                                entering={FadeInUp.delay(200 + index * 100)}
+                                style={styles.featureCard}
+                            >
+                                <View style={[styles.iconBox, { backgroundColor: feature.color + '15' }]}>
+                                    <Feather name={feature.icon as any} size={24} color={feature.color} />
+                                </View>
+                                <Text style={styles.featureTitle}>{feature.title}</Text>
+                                <Text style={styles.featureDesc}>{feature.desc}</Text>
+                            </Animated.View>
+                        ))}
+                    </View>
                 </View>
 
-                <ShowcaseStep
-                    id="showcase-index"
-                    title="Transparent Architecture"
-                    description="We believe in open standards. Review our tech stack and version details here."
-                >
-                    <Animated.View entering={FadeInUp.delay(600)} style={styles.indexSection}>
-                        <View style={styles.indexCard}>
-                            <View style={styles.indexHeader}>
-                                <Feather name="list" size={20} color="#111827" />
-                                <Text style={styles.indexTitle}>Project Index</Text>
+                <Animated.View entering={FadeInUp.delay(600)} style={styles.indexSection}>
+                    <View style={styles.indexCard}>
+                        <View style={styles.indexHeader}>
+                            <Feather name="list" size={20} color="#111827" />
+                            <Text style={styles.indexTitle}>Project Index</Text>
+                        </View>
+                        <View style={styles.indexList}>
+                            <View style={styles.indexItem}>
+                                <Text style={styles.indexItemLabel}>Version</Text>
+                                <Text style={styles.indexItemValue}>1.0.0 Stable</Text>
                             </View>
-                            <View style={styles.indexList}>
-                                <View style={styles.indexItem}>
-                                    <Text style={styles.indexItemLabel}>Version</Text>
-                                    <Text style={styles.indexItemValue}>1.0.0 Stable</Text>
-                                </View>
-                                <View style={styles.divider} />
-                                <View style={styles.indexItem}>
-                                    <Text style={styles.indexItemLabel}>Tech Stack</Text>
-                                    <Text style={styles.indexItemValue}>React Native + Expo</Text>
-                                </View>
-                                <View style={styles.divider} />
-                                <View style={styles.indexItem}>
-                                    <Text style={styles.indexItemLabel}>Architecture</Text>
-                                    <Text style={styles.indexItemValue}>File-based Routing</Text>
-                                </View>
+                            <View style={styles.divider} />
+                            <View style={styles.indexItem}>
+                                <Text style={styles.indexItemLabel}>Tech Stack</Text>
+                                <Text style={styles.indexItemValue}>React Native + Expo</Text>
+                            </View>
+                            <View style={styles.divider} />
+                            <View style={styles.indexItem}>
+                                <Text style={styles.indexItemLabel}>Architecture</Text>
+                                <Text style={styles.indexItemValue}>File-based Routing</Text>
                             </View>
                         </View>
-                    </Animated.View>
-                </ShowcaseStep>
+                    </View>
+                </Animated.View>
             </ScrollView>
         </View>
     );
