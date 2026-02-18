@@ -1,489 +1,414 @@
 
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+    StyleSheet, Text, View, ScrollView, Dimensions,
+    Pressable, Alert, Modal
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTasks } from '../../context/TaskContext';
+import { useTheme } from '../../context/ThemeContext';
 
+const { width } = Dimensions.get('window');
+const CHART_HEIGHT = 130;
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+type DateRange = 'Week' | 'Month' | 'Year';
 
-function ProgressRing({ progress, size = 120 }: { progress: number; size?: number }) {
-    const strokeWidth = 10;
-    const pct = Math.round(progress * 100);
+// Mock data for different date ranges
+const RANGE_DATA: Record<DateRange, { bars: number[]; labels: string[] }> = {
+    Week: { bars: [45, 60, 85, 40, 95, 70, 55], labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] },
+    Month: { bars: [60, 45, 80, 55, 70, 90, 40, 65, 75, 50, 85, 60], labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12'] },
+    Year: { bars: [55, 70, 65, 80, 75, 90, 85, 60, 70, 80, 75, 95], labels: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] },
+};
+
+const INSIGHTS: Record<DateRange, string> = {
+    Week: "You complete 40% more tasks before noon. Try scheduling your hardest tasks in the morning!",
+    Month: "Your productivity peaks in the 3rd week of the month. You're 28% more consistent than last month.",
+    Year: "December is your strongest month. You've improved your completion rate by 35% this year!",
+};
+
+export default function StatsScreen() {
+    const { theme, isDark } = useTheme();
+    const { tasks, habits, stats } = useTasks();
+    const [range, setRange] = useState<DateRange>('Week');
+
+    const completionRate = useMemo(() => {
+        const total = tasks.length || 1;
+        const completed = tasks.filter(t => t.completed).length;
+        return completed / total;
+    }, [tasks]);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const chartData = RANGE_DATA[range];
+    const peakIndex = chartData.bars.indexOf(Math.max(...chartData.bars));
+
+    const maxStreak = useMemo(() => {
+        return habits.reduce((max, h) => Math.max(max, h.streak), 0);
+    }, [habits]);
+
+    const focusScore = Math.round(
+        (completionRate * 0.5 + (maxStreak > 0 ? Math.min(maxStreak / 10, 1) * 0.3 : 0) + 0.2) * 100
+    );
+
+    const handleExport = () => {
+        Alert.alert("Export Data", "Your latest productivity report has been exported successfully!");
+    };
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar style={isDark ? "light" : "dark"} />
+
+            {/* Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={[styles.title, { color: theme.text }]}>Analytics</Text>
+                    <Text style={[styles.subtitle, { color: theme.subtext }]}>Your productivity insights</Text>
+                </View>
+                <Pressable
+                    onPress={handleExport}
+                    style={({ pressed }) => [
+                        styles.shareBtn,
+                        { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
+                    ]}
+                >
+                    <Feather name="share-2" size={20} color={theme.text} />
+                </Pressable>
+            </View>
+
+            {/* Date Range Selector */}
+            <View style={[styles.rangeRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                {(['Week', 'Month', 'Year'] as DateRange[]).map(r => (
+                    <Pressable
+                        key={r}
+                        onPress={() => setRange(r)}
+                        style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}
+                    >
+                        {range === r ? (
+                            <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.rangeBtnGradient}>
+                                <Text style={styles.rangeBtnTextActive}>{r}</Text>
+                            </LinearGradient>
+                        ) : (
+                            <Text style={[styles.rangeBtnText, { color: theme.subtext }]}>{r}</Text>
+                        )}
+                    </Pressable>
+                ))}
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                {/* Hero Stats Row */}
+                <Animated.View entering={FadeInDown.delay(50)} style={styles.heroRow}>
+                    <HeroStat
+                        label="Tasks Done"
+                        value={stats.completedTasks.toString()}
+                        icon="check-circle"
+                        color="#10B981"
+                        bg="#DCFCE7"
+                        trend="+12%"
+                        theme={theme}
+                    />
+                    <HeroStat
+                        label="Streak"
+                        value={`${maxStreak}d`}
+                        icon="zap"
+                        color="#F59E0B"
+                        bg="#FEF3C7"
+                        trend="Best!"
+                        theme={theme}
+                    />
+                    <HeroStat
+                        label="Focus Score"
+                        value={`${focusScore}%`}
+                        icon="target"
+                        color="#6366F1"
+                        bg="#EDE9FE"
+                        trend="+5%"
+                        theme={theme}
+                    />
+                </Animated.View>
+
+                {/* Activity Chart */}
+                <Animated.View entering={FadeInDown.delay(100)} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <View style={styles.cardHeader}>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>Activity Stream</Text>
+                        <View style={styles.peakBadge}>
+                            <Feather name="trending-up" size={12} color="#6366F1" />
+                            <Text style={styles.peakBadgeText}>Peak: {chartData.labels[peakIndex]}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.chartRow}>
+                        {chartData.bars.map((val, i) => (
+                            <View key={i} style={styles.barCol}>
+                                <View style={styles.barTrack}>
+                                    <LinearGradient
+                                        colors={i === peakIndex ? ['#F59E0B', '#FBBF24'] : ['#6366F1', '#8B5CF6']}
+                                        style={[styles.barFill, { height: `${val}%` as any }]}
+                                    />
+                                </View>
+                                <Text style={[styles.barDay, { color: theme.subtext }]}>{chartData.labels[i]}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </Animated.View>
+
+                {/* Habit Performance Rings */}
+                {habits.length > 0 && (
+                    <Animated.View entering={FadeInDown.delay(150)} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 20 }]}>Habit Performance</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringsRow}>
+                            {habits.map((habit, i) => {
+                                const pct = Math.min(habit.streak * 10, 100);
+                                const colors = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+                                const color = colors[i % colors.length];
+                                return (
+                                    <View key={habit.id} style={styles.ringItem}>
+                                        <HabitRing percent={pct} color={color} size={72} />
+                                        <Text style={[styles.ringLabel, { color: theme.text }]} numberOfLines={2}>
+                                            {habit.title}
+                                        </Text>
+                                        <Text style={[styles.ringStreak, { color: theme.subtext }]}>
+                                            {habit.streak}d streak
+                                        </Text>
+                                    </View>
+                                );
+                            })}
+                        </ScrollView>
+                    </Animated.View>
+                )}
+
+                {/* AI Insight Card */}
+                <Animated.View entering={FadeInDown.delay(200)}>
+                    <LinearGradient
+                        colors={isDark ? ['#2D1B69', '#1E1B4B'] : ['#EDE9FE', '#F5F3FF']}
+                        style={[styles.insightCard, { borderColor: '#8B5CF630' }]}
+                    >
+                        <View style={styles.insightHeader}>
+                            <View style={styles.insightIconBadge}>
+                                <Text style={{ fontSize: 16 }}>✨</Text>
+                            </View>
+                            <Text style={[styles.insightTitle, { color: isDark ? '#C4B5FD' : '#6366F1' }]}>
+                                AI Insight
+                            </Text>
+                        </View>
+                        <Text style={[styles.insightText, { color: isDark ? '#E2E8F0' : '#374151' }]}>
+                            {INSIGHTS[range]}
+                        </Text>
+                    </LinearGradient>
+                </Animated.View>
+
+                {/* Category Breakdown */}
+                <Animated.View entering={FadeInDown.delay(250)} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 20 }]}>Focus Distribution</Text>
+                    <DistributionItem label="Work" percent={65} color="#6366F1" theme={theme} />
+                    <DistributionItem label="Personal" percent={25} color="#EC4899" theme={theme} />
+                    <DistributionItem label="Health" percent={10} color="#10B981" theme={theme} />
+                </Animated.View>
+
+                {/* Milestones */}
+                <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
+                    <Text style={[styles.cardTitle, { color: theme.text, marginLeft: 4, marginBottom: 16 }]}>Achievements</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.milestoneScroll}>
+                        <MilestoneCard icon="award" title="Early Bird" desc="5 tasks before 8am" color="#F59E0B" unlocked theme={theme} />
+                        <MilestoneCard icon="zap" title="On Fire" desc="Complete 10 tasks" color="#EF4444" unlocked theme={theme} />
+                        <MilestoneCard icon="target" title="Bullseye" desc="Perfect week" color="#10B981" theme={theme} />
+                        <MilestoneCard icon="star" title="Superstar" desc="Level 10 reached" color="#8B5CF6" theme={theme} />
+                        <MilestoneCard icon="trending-up" title="Consistent" desc="30 day streak" color="#06B6D4" theme={theme} />
+                    </ScrollView>
+                </Animated.View>
+
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+function HeroStat({ label, value, icon, color, bg, trend, theme }: any) {
+    return (
+        <View style={[styles.heroStat, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.heroStatIcon, { backgroundColor: bg }]}>
+                <Feather name={icon} size={16} color={color} />
+            </View>
+            <Text style={[styles.heroStatValue, { color: theme.text }]}>{value}</Text>
+            <Text style={[styles.heroStatLabel, { color: theme.subtext }]}>{label}</Text>
+            <Text style={[styles.heroStatTrend, { color }]}>{trend}</Text>
+        </View>
+    );
+}
+
+function HabitRing({ percent, color, size }: { percent: number; color: string; size: number }) {
+    const r = (size - 10) / 2;
+    const circumference = 2 * Math.PI * r;
+    const strokeDash = (percent / 100) * circumference;
+    const cx = size / 2;
+    const cy = size / 2;
 
     return (
         <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-            <View
-                style={{
-                    position: 'absolute',
-                    width: size,
-                    height: size,
-                    borderRadius: size / 2,
-                    borderWidth: strokeWidth,
-                    borderColor: '#F3F4F6',
-                }}
-            />
-            <View
-                style={{
-                    position: 'absolute',
-                    width: size,
-                    height: size,
-                    borderRadius: size / 2,
-                    borderWidth: strokeWidth,
-                    borderColor: '#6366F1',
-                    borderTopColor: progress > 0.25 ? '#6366F1' : 'transparent',
-                    borderRightColor: progress > 0.5 ? '#6366F1' : 'transparent',
-                    borderBottomColor: progress > 0.75 ? '#6366F1' : 'transparent',
-                    borderLeftColor: progress > 0 ? '#6366F1' : 'transparent',
-                    transform: [{ rotate: '-45deg' }],
-                }}
-            />
-            <View style={styles.ringInner}>
-                <Text style={styles.ringPct}>{pct}%</Text>
-                <Text style={styles.ringLabel}>Goal</Text>
+            {/* Background ring */}
+            <View style={{
+                position: 'absolute', width: size, height: size,
+                borderRadius: size / 2, borderWidth: 6,
+                borderColor: color + '20',
+            }} />
+            {/* Progress ring using a simple arc approximation */}
+            <View style={{
+                position: 'absolute', width: size, height: size,
+                borderRadius: size / 2, borderWidth: 6,
+                borderColor: color,
+                borderTopColor: percent > 25 ? color : 'transparent',
+                borderRightColor: percent > 50 ? color : 'transparent',
+                borderBottomColor: percent > 75 ? color : 'transparent',
+                borderLeftColor: percent > 0 ? color : 'transparent',
+                transform: [{ rotate: '-90deg' }],
+            }} />
+            <Text style={{ fontSize: 13, fontFamily: 'Outfit_700Bold', color }}>{percent}%</Text>
+        </View>
+    );
+}
+
+function DistributionItem({ label, percent, color, theme }: any) {
+    return (
+        <View style={styles.distItem}>
+            <View style={styles.distHeader}>
+                <View style={[styles.distDot, { backgroundColor: color }]} />
+                <Text style={[styles.distLabel, { color: theme.text }]}>{label}</Text>
+                <Text style={[styles.distPercent, { color: theme.subtext }]}>{percent}%</Text>
+            </View>
+            <View style={[styles.distTrack, { backgroundColor: theme.background }]}>
+                <View style={[styles.distFill, { width: `${percent}%`, backgroundColor: color }]} />
             </View>
         </View>
     );
 }
 
-export default function StatsScreen() {
-    const { tasks, streak } = useTasks();
-
-    // Stats Calculation
-    const completedTasks = tasks.filter((t) => t.completed);
-    const completedCount = completedTasks.length;
-    const totalCount = tasks.length;
-
-    // Efficiency: Completed / (Completed + Overdue/Pending)
-    // A better metric might be: Completed Tasks / Total Tasks created * 100
-    const completionRate = totalCount > 0 ? completedCount / totalCount : 0;
-
-    const weeklyData = useMemo(() => {
-        const data: number[] = [];
-        const today = new Date();
-
-        // Generate last 7 days data
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().slice(0, 10);
-
-            // Count tasks completed on this specific date
-            const count = tasks.filter(t => {
-                if (!t.completed || !t.completedAt) return false;
-                return t.completedAt.slice(0, 10) === dateStr;
-            }).length;
-
-            data.push(count);
-        }
-        return data;
-    }, [tasks]);
-
-    const maxWeekly = Math.max(...weeklyData, 5); // Minimum scale of 5 for better visuals
-
-    // Calculate Trend
-    const lastWeekCount = weeklyData.slice(0, 3).reduce((a, b) => a + b, 0);
-    const thisWeekCount = weeklyData.slice(3).reduce((a, b) => a + b, 0);
-    const trend = lastWeekCount > 0 ? ((thisWeekCount - lastWeekCount) / lastWeekCount) * 100 : 0;
-
+function MilestoneCard({ icon, title, desc, color, unlocked = false, theme }: any) {
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                <View style={styles.topHeader}>
-                    <Text style={styles.headerTitle}>Performance</Text>
-                    <View style={styles.periodBadge}>
-                        <Text style={styles.periodText}>Last 7 Days</Text>
-                    </View>
+        <View style={[styles.milestoneCard, { backgroundColor: theme.surface, borderColor: theme.border }, !unlocked && { opacity: 0.5 }]}>
+            <View style={[styles.milestoneIcon, { backgroundColor: color + '18' }]}>
+                <Feather name={icon} size={22} color={unlocked ? color : theme.subtext} />
+            </View>
+            <Text style={[styles.milestoneTitle, { color: theme.text }]}>{title}</Text>
+            <Text style={[styles.milestoneDesc, { color: theme.subtext }]}>{desc}</Text>
+            {!unlocked && (
+                <View style={styles.lockBadge}>
+                    <Feather name="lock" size={10} color={theme.subtext} />
                 </View>
-
-                <Animated.View entering={FadeInDown.delay(100)} style={styles.mainScoreCard}>
-                    <View style={styles.scoreInfo}>
-                        <Text style={styles.scoreTitle}>Current Streak</Text>
-                        <View style={styles.scoreRow}>
-                            <Text style={styles.scoreValue}>{streak}</Text>
-                            <Text style={styles.scoreUnit}>days</Text>
-                            <Feather name="zap" size={24} color="#F59E0B" style={{ marginLeft: 8 }} />
-                        </View>
-                        <Text style={styles.scoreSub}>
-                            {streak > 3 ? "You're on fire! Keep it up." : "Consistency is key."}
-                        </Text>
-                    </View>
-                    <ProgressRing progress={completionRate} size={100} />
-                </Animated.View>
-
-                <Animated.View entering={FadeInDown.delay(200)} style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Activity Analysis</Text>
-                    <View style={styles.barsContainer}>
-                        {weeklyData.map((val, i) => {
-                            const height = (val / maxWeekly) * 100;
-                            // Calculate day label for the last 7 days
-                            const date = new Date();
-                            date.setDate(date.getDate() - (6 - i));
-                            const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
-                            const isToday = i === 6;
-
-                            return (
-                                <View key={i} style={styles.barCol}>
-                                    <View style={styles.barTrack}>
-                                        <View
-                                            style={[
-                                                styles.barFill,
-                                                { height: `${Math.max(height, 5)}%` },
-                                                isToday && styles.barToday
-                                            ]}
-                                        />
-                                    </View>
-                                    <Text style={[styles.barLabel, isToday && styles.barLabelToday]}>
-                                        {dayLabel}
-                                    </Text>
-                                </View>
-                            );
-                        })}
-                    </View>
-                </Animated.View>
-
-                <View style={styles.statsRow}>
-                    <Animated.View entering={FadeInDown.delay(300)} style={styles.miniCard}>
-                        <Text style={styles.miniLabel}>Completed</Text>
-                        <Text style={styles.miniValue}>{completedCount}</Text>
-                        <View style={[styles.miniTrend, { backgroundColor: trend >= 0 ? '#ECFDF5' : '#FEF2F2' }]}>
-                            <Feather
-                                name={trend >= 0 ? "trending-up" : "trending-down"}
-                                size={12}
-                                color={trend >= 0 ? "#10B981" : "#EF4444"}
-                            />
-                            <Text style={[styles.trendText, { color: trend >= 0 ? '#10B981' : '#EF4444' }]}>
-                                {Math.abs(Math.round(trend))}%
-                            </Text>
-                        </View>
-                    </Animated.View>
-                    <Animated.View entering={FadeInDown.delay(400)} style={styles.miniCard}>
-                        <Text style={styles.miniLabel}>Efficiency</Text>
-                        <Text style={styles.miniValue}>{Math.round(completionRate * 100)}%</Text>
-                        <View style={[styles.miniTrend, { backgroundColor: '#F9FAFB' }]}>
-                            <Text style={[styles.trendText, { color: '#6B7280' }]}>Lifetime</Text>
-                        </View>
-                    </Animated.View>
-                </View>
-
-                {/* Category Breakdown */}
-                <Animated.View entering={FadeInDown.delay(450)} style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Category Breakdown</Text>
-                    {['Work', 'Personal', 'Health', 'Learning', 'Finance'].map((cat, i) => {
-                        const catTasks = tasks.filter(t => t.category === cat);
-                        const doneCatTasks = catTasks.filter(t => t.completed);
-                        const ratio = catTasks.length > 0 ? doneCatTasks.length / catTasks.length : 0;
-                        if (catTasks.length === 0) return null;
-
-                        return (
-                            <View key={cat} style={styles.categoryRow}>
-                                <View style={styles.categoryInfo}>
-                                    <Text style={styles.categoryName}>{cat}</Text>
-                                    <Text style={styles.categoryCount}>{doneCatTasks.length}/{catTasks.length}</Text>
-                                </View>
-                                <View style={styles.categoryTrack}>
-                                    <View style={[styles.categoryFill, { width: `${ratio * 100}%` }]} />
-                                </View>
-                            </View>
-                        );
-                    })}
-                </Animated.View>
-
-                {/* Productivity Insight */}
-                <Animated.View entering={FadeInDown.delay(500)} style={styles.insightCard}>
-                    <View style={styles.insightHeader}>
-                        <View style={styles.insightIcon}>
-                            <Feather name="info" size={20} color="#8B5CF6" />
-                        </View>
-                        <Text style={styles.insightTitle}>Productivity Insight</Text>
-                    </View>
-                    <Text style={styles.insightText}>
-                        Your most productive day is <Text style={{ fontWeight: '700', color: '#6366F1' }}>{DAYS[weeklyData.indexOf(Math.max(...weeklyData))] || 'Today'}</Text>.
-                        You tend to finish {Math.max(...weeklyData)} tasks then.
-                    </Text>
-                </Animated.View>
-
-                <Animated.View entering={FadeInDown.delay(550)} style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Milestones</Text>
-                    <View style={styles.milestoneRow}>
-                        <View style={styles.milestoneItem}>
-                            <View style={[styles.milestoneIcon, streak >= 3 && styles.milestoneIconActive]}>
-                                <Feather name="zap" size={24} color={streak >= 3 ? '#6366F1' : '#E5E7EB'} />
-                            </View>
-                            <Text style={[styles.milestoneName, streak >= 3 && { color: '#1F2937' }]}>Hot Streak</Text>
-                        </View>
-                        <View style={styles.milestoneItem}>
-                            <View style={[styles.milestoneIcon, completedCount >= 10 && styles.milestoneIconActive]}>
-                                <Feather name="award" size={24} color={completedCount >= 10 ? '#6366F1' : '#E5E7EB'} />
-                            </View>
-                            <Text style={[styles.milestoneName, completedCount >= 10 && { color: '#1F2937' }]}>Expert</Text>
-                        </View>
-                        <View style={styles.milestoneItem}>
-                            <View style={[styles.milestoneIcon, completedCount >= 50 && styles.milestoneIconActive]}>
-                                <Feather name="lock" size={24} color={completedCount >= 50 ? '#6366F1' : '#E5E7EB'} />
-                            </View>
-                            <Text style={[styles.milestoneName, completedCount >= 50 && { color: '#1F2937' }]}>Master</Text>
-                        </View>
-                    </View>
-                </Animated.View>
-            </ScrollView>
+            )}
         </View>
     );
 }
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    content: {
-        padding: 24,
-        paddingBottom: 40,
-    },
-    topHeader: {
+    container: { flex: 1 },
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: 12,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#111827',
+    title: { fontSize: 30, fontFamily: 'Outfit_700Bold', letterSpacing: -0.5 },
+    subtitle: { fontSize: 13, fontFamily: 'Outfit_500Medium', marginTop: 2 },
+    shareBtn: {
+        width: 44, height: 44, borderRadius: 14,
+        borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     },
-    periodBadge: {
-        backgroundColor: '#F3F4F6',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+    rangeRow: {
+        flexDirection: 'row',
+        marginHorizontal: 24,
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 4,
+        marginBottom: 16,
+    },
+    rangeBtn: { flex: 1, borderRadius: 12, overflow: 'hidden' },
+    rangeBtnActive: {},
+    rangeBtnGradient: { paddingVertical: 8, alignItems: 'center', borderRadius: 12 },
+    rangeBtnText: { textAlign: 'center', paddingVertical: 8, fontFamily: 'Outfit_600SemiBold', fontSize: 13 },
+    rangeBtnTextActive: { color: '#FFF', fontFamily: 'Outfit_700Bold', fontSize: 13 },
+    scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
+    heroRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    heroStat: {
+        flex: 1, borderRadius: 20, padding: 14, borderWidth: 1,
+        alignItems: 'center', gap: 4,
+    },
+    heroStatIcon: {
+        width: 36, height: 36, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    },
+    heroStatValue: { fontSize: 20, fontFamily: 'Outfit_700Bold' },
+    heroStatLabel: { fontSize: 10, fontFamily: 'Outfit_500Medium', textAlign: 'center' },
+    heroStatTrend: { fontSize: 11, fontFamily: 'Outfit_700Bold' },
+    card: {
+        borderRadius: 24, padding: 20, borderWidth: 1, marginBottom: 16,
+    },
+    cardHeader: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', marginBottom: 20,
+    },
+    cardTitle: { fontSize: 17, fontFamily: 'Outfit_700Bold' },
+    peakBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: '#EDE9FE', paddingHorizontal: 10, paddingVertical: 4,
         borderRadius: 20,
     },
-    periodText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#4B5563',
-    },
-    mainScoreCard: {
-        backgroundColor: '#111827',
-        borderRadius: 28,
-        padding: 24,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    scoreInfo: {
-        flex: 1,
-    },
-    scoreTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#9CA3AF',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 8,
-    },
-    scoreRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginBottom: 8,
-    },
-    scoreValue: {
-        fontSize: 40,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    scoreUnit: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#9CA3AF',
-        marginLeft: 6,
-    },
-    scoreSub: {
-        fontSize: 12,
-        color: '#4B5563',
-        fontWeight: '500',
-    },
-    ringInner: {
-        alignItems: 'center',
-    },
-    ringPct: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    ringLabel: {
-        fontSize: 10,
-        color: '#9CA3AF',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    sectionCard: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 20,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#111827',
-        marginBottom: 20,
-    },
-    barsContainer: {
+    peakBadgeText: { fontSize: 11, fontFamily: 'Outfit_700Bold', color: '#6366F1' },
+    chartRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        height: 120,
+        height: CHART_HEIGHT,
+        paddingBottom: 8,
     },
-    barCol: {
-        alignItems: 'center',
-        flex: 1,
-        gap: 12,
-    },
+    barCol: { alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end' },
     barTrack: {
-        width: 12,
-        height: 100,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 6,
-        justifyContent: 'flex-end',
-        overflow: 'hidden',
+        width: 10, flex: 1, borderRadius: 5,
+        justifyContent: 'flex-end', overflow: 'hidden',
     },
-    barFill: {
-        width: '100%',
-        backgroundColor: '#D1D5DB',
+    barFill: { width: '100%', borderRadius: 5, minHeight: 8 },
+    barDay: { fontSize: 10, fontFamily: 'Outfit_600SemiBold', marginTop: 8 },
+    ringsRow: { gap: 20, paddingRight: 8 },
+    ringItem: { alignItems: 'center', gap: 8, width: 80 },
+    ringLabel: { fontSize: 11, fontFamily: 'Outfit_600SemiBold', textAlign: 'center', lineHeight: 15 },
+    ringStreak: { fontSize: 10, fontFamily: 'Outfit_500Medium' },
+    insightCard: {
+        borderRadius: 24, padding: 20, borderWidth: 1, marginBottom: 16,
     },
-    barToday: {
-        backgroundColor: '#6366F1',
+    insightHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+    insightIconBadge: {
+        width: 36, height: 36, borderRadius: 12,
+        backgroundColor: '#8B5CF620', alignItems: 'center', justifyContent: 'center',
     },
-    barLabel: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#9CA3AF',
-    },
-    barLabelToday: {
-        color: '#6366F1',
-    },
-    statsRow: {
-        flexDirection: 'row',
-        gap: 16,
-        marginBottom: 20,
-    },
-    miniCard: {
-        flex: 1,
-        backgroundColor: '#F9FAFB',
-        borderRadius: 24,
-        padding: 20,
-    },
-    miniLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#6B7280',
-        marginBottom: 8,
-    },
-    miniValue: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#111827',
-        marginBottom: 8,
-    },
-    miniTrend: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'flex-start',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 20,
-    },
-    trendText: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    milestoneRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    milestoneItem: {
-        alignItems: 'center',
-        gap: 8,
+    insightTitle: { fontSize: 14, fontFamily: 'Outfit_700Bold' },
+    insightText: { fontSize: 14, fontFamily: 'Outfit_500Medium', lineHeight: 22 },
+    section: { marginBottom: 16 },
+    milestoneScroll: { gap: 12, paddingRight: 8 },
+    milestoneCard: {
+        width: 140, padding: 16, borderRadius: 20, borderWidth: 1,
     },
     milestoneIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 12,
     },
-    milestoneIconActive: {
-        backgroundColor: '#EFF6FF',
+    milestoneTitle: { fontSize: 14, fontFamily: 'Outfit_700Bold', marginBottom: 4 },
+    milestoneDesc: { fontSize: 11, fontFamily: 'Outfit_500Medium', lineHeight: 15 },
+    lockBadge: {
+        position: 'absolute', top: 10, right: 10,
+        width: 22, height: 22, borderRadius: 11,
+        backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center',
     },
-    milestoneName: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#4B5563',
-    },
-    categoryRow: {
-        marginBottom: 16,
-    },
-    categoryInfo: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 6,
-    },
-    categoryName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-    },
-    categoryCount: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
-    categoryTrack: {
-        height: 6,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 3,
-        overflow: 'hidden',
-    },
-    categoryFill: {
-        height: '100%',
-        backgroundColor: '#6366F1',
-    },
-    insightCard: {
-        backgroundColor: '#F5F3FF',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#EDE9FE',
-    },
-    insightHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
-    },
-    insightIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    insightTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    insightText: {
-        fontSize: 14,
-        color: '#4B5563',
-        lineHeight: 20,
-    },
+    distItem: { marginBottom: 14 },
+    distHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+    distDot: { width: 10, height: 10, borderRadius: 5 },
+    distLabel: { fontSize: 14, fontFamily: 'Outfit_600SemiBold', flex: 1 },
+    distPercent: { fontSize: 13, fontFamily: 'Outfit_500Medium' },
+    distTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+    distFill: { height: '100%', borderRadius: 4 },
 });

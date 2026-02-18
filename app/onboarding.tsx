@@ -8,11 +8,14 @@ import {
     View,
     ViewToken,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeToggle } from '../components/ThemeToggle';
+
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -74,6 +77,7 @@ function FloatingIcon({ icon, delay, x, y, size = 24 }: {
     y: number;
     size?: number;
 }) {
+    const { theme, isDark } = useTheme();
     const translateY = useSharedValue(0);
     const opacity = useSharedValue(0);
 
@@ -103,17 +107,18 @@ function FloatingIcon({ icon, delay, x, y, size = 24 }: {
                 width: size + 24,
                 height: size + 24,
                 borderRadius: (size + 24) / 2,
-                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                backgroundColor: isDark ? 'rgba(139, 92, 246, 0.12)' : 'rgba(99, 102, 241, 0.08)',
                 alignItems: 'center',
                 justifyContent: 'center',
             }, animStyle]}
         >
-            <Feather name={icon} size={size} color="rgba(99, 102, 241, 0.35)" />
+            <Feather name={icon} size={size} color={isDark ? "rgba(167, 139, 250, 0.45)" : "rgba(99, 102, 241, 0.35)"} />
         </Animated.View>
     );
 }
 
 function HeroIcon({ icon, accent, accentBg }: { icon: keyof typeof Feather.glyphMap; accent: string; accentBg: string }) {
+    const { isDark } = useTheme();
     const scale = useSharedValue(0.8);
     const rotate = useSharedValue(0);
 
@@ -137,9 +142,9 @@ function HeroIcon({ icon, accent, accentBg }: { icon: keyof typeof Feather.glyph
     }));
 
     return (
-        <Animated.View style={[styles.heroIconOuter, { backgroundColor: accentBg }, animStyle]}>
+        <Animated.View style={[styles.heroIconOuter, { backgroundColor: isDark ? '#1E1B4B' : accentBg }, animStyle]}>
             <LinearGradient
-                colors={[accent, '#8B5CF6']}
+                colors={[accent, isDark ? '#A78BFA' : '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.heroIconInner}
@@ -150,7 +155,9 @@ function HeroIcon({ icon, accent, accentBg }: { icon: keyof typeof Feather.glyph
     );
 }
 
+
 function Slide({ item, index }: { item: SlideData; index: number }) {
+    const { theme } = useTheme();
     return (
         <View style={[styles.slide, { width }]}>
             <FloatingIcon icon={item.decorIcons[0]} delay={0} x={width * 0.08} y={height * 0.06} size={20} />
@@ -161,22 +168,24 @@ function Slide({ item, index }: { item: SlideData; index: number }) {
 
             <Animated.Text
                 entering={FadeInDown.delay(200).springify().damping(14)}
-                style={styles.slideTitle}
+                style={[styles.slideTitle, { color: theme.text }]}
             >
                 {item.title}
             </Animated.Text>
             <Animated.Text
                 entering={FadeInDown.delay(400).springify().damping(14)}
-                style={styles.slideSubtitle}
+                style={[styles.slideSubtitle, { color: theme.subtext }]}
             >
                 {item.subtitle}
             </Animated.Text>
+
         </View>
     );
 }
 
 export default function OnboardingScreen() {
-    const insets = useSafeAreaInsets();
+
+    const { theme, isDark } = useTheme();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
@@ -198,8 +207,6 @@ export default function OnboardingScreen() {
         }
     };
 
-
-
     const handleSkip = () => {
         router.replace('/(tabs)');
     };
@@ -207,31 +214,29 @@ export default function OnboardingScreen() {
     const isLast = activeIndex === SLIDES.length - 1;
 
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar style={isDark ? "light" : "dark"} />
 
             {/* Top bar */}
             <Animated.View
                 entering={FadeIn.delay(300)}
-                style={[styles.topBar, { paddingTop: insets.top + 8 }]}
+                style={[styles.topBar, { paddingTop: 8 }]}
             >
-                <View style={styles.logoBadge}>
+                <View style={[styles.logoBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <LinearGradient
-                        colors={['#6366F1', '#8B5CF6']}
+                        colors={isDark ? ['#8B5CF6', '#A78BFA'] : ['#6366F1', '#8B5CF6']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.logoIcon}
                     >
                         <Feather name="check-square" size={14} color="#FFF" />
                     </LinearGradient>
-                    <Text style={styles.logoText}>Taskodo</Text>
+                    <Text style={[styles.logoText, { color: theme.text }]}>Taskodo</Text>
                 </View>
-                {!isLast && (
-                    <Pressable onPress={handleSkip} hitSlop={12} style={styles.skipBtn}>
-                        <Text style={styles.skipText}>Skip</Text>
-                        <Feather name="chevron-right" size={14} color="#9CA3AF" />
-                    </Pressable>
-                )}
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <ThemeToggle />
+                </View>
             </Animated.View>
 
             {/* Slides */}
@@ -250,7 +255,7 @@ export default function OnboardingScreen() {
             {/* Bottom */}
             <Animated.View
                 entering={FadeInUp.delay(500)}
-                style={[styles.bottom, { paddingBottom: insets.bottom + 20 }]}
+                style={[styles.bottom, { paddingBottom: 20 }]}
             >
                 <View style={styles.dotsRow}>
                     {SLIDES.map((_, i) => (
@@ -258,7 +263,8 @@ export default function OnboardingScreen() {
                             key={i}
                             style={[
                                 styles.dot,
-                                activeIndex === i && styles.dotActive,
+                                { backgroundColor: isDark ? '#1E293B' : '#E5E7EB' },
+                                activeIndex === i && (isDark ? { backgroundColor: '#A78BFA', width: 28 } : styles.dotActive),
                             ]}
                         />
                     ))}
@@ -269,35 +275,39 @@ export default function OnboardingScreen() {
                 </Text>
 
                 <View style={styles.ctaContainer}>
-
-
-                    <Pressable onPress={handleNext}>
+                    <Pressable onPress={handleNext} style={styles.pressableBtn}>
                         <LinearGradient
-                            colors={['#6366F1', '#8B5CF6']}
+                            colors={isDark ? ['#8B5CF6', '#A78BFA'] : ['#6366F1', '#8B5CF6']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={[styles.ctaButton, isLast && styles.ctaButtonLast]}
                         >
                             <Text style={styles.ctaText}>
-                                {isLast ? "Let's Go" : 'Continue'}
+                                {isLast ? "Begin Your Journey" : 'Get Started'}
                             </Text>
                             <Feather
-                                name={isLast ? 'zap' : 'chevron-right'}
+                                name={isLast ? 'zap' : 'arrow-right'}
                                 size={20}
                                 color="#FFFFFF"
                             />
                         </LinearGradient>
                     </Pressable>
+
+                    {!isLast && (
+                        <Pressable onPress={handleSkip} style={styles.skipBtnBottom}>
+                            <Text style={[styles.skipTextBottom, { color: theme.subtext }]}>Explore first?</Text>
+                        </Pressable>
+                    )}
                 </View>
             </Animated.View>
-        </View>
+        </SafeAreaView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFBFF',
     },
     topBar: {
         flexDirection: 'row',
@@ -309,11 +319,11 @@ const styles = StyleSheet.create({
     logoBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 14,
         gap: 8,
+        borderWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -330,7 +340,6 @@ const styles = StyleSheet.create({
     logoText: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#111827',
         letterSpacing: -0.5,
     },
     skipBtn: {
@@ -373,7 +382,6 @@ const styles = StyleSheet.create({
     slideTitle: {
         fontSize: 34,
         fontWeight: '900',
-        color: '#111827',
         textAlign: 'center',
         lineHeight: 42,
         marginBottom: 20,
@@ -381,11 +389,11 @@ const styles = StyleSheet.create({
     },
     slideSubtitle: {
         fontSize: 16,
-        color: '#6B7280',
         textAlign: 'center',
         lineHeight: 26,
         fontWeight: '500',
     },
+
     bottom: {
         paddingHorizontal: 32,
         gap: 16,
@@ -427,10 +435,22 @@ const styles = StyleSheet.create({
         gap: 10,
         width: '100%',
         shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.25,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
         shadowRadius: 20,
-        elevation: 10,
+        elevation: 8,
+    },
+    pressableBtn: {
+        width: '100%',
+    },
+    skipBtnBottom: {
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    skipTextBottom: {
+        fontSize: 14,
+        fontWeight: '700',
+        opacity: 0.7,
     },
     ctaButtonLast: {
         width: '100%',

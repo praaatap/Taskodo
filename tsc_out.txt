@@ -1,0 +1,1 @@
+﻿context/TaskContext.tsx(866,41): error TS2339: Property 'documentDirectory' does not exist on type 'typeof import("D:/top projects/Taskodo/Taskodo/node_modules/expo-file-system/build/index")'.

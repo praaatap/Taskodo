@@ -8,6 +8,7 @@ import {
     Dimensions,
     Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -57,7 +58,7 @@ export default function ShowcaseScreen() {
 
 
     return (
-        <View style={styles.safe}>
+        <SafeAreaView style={styles.safe}>
             <StatusBar style="dark" />
 
             <ScrollView
@@ -131,7 +132,7 @@ export default function ShowcaseScreen() {
                     </View>
                 </Animated.View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -139,7 +140,6 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
         backgroundColor: '#FAFBFF',
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
     },
     scrollContent: {
         paddingBottom: 40,

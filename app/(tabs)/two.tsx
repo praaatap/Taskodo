@@ -1,19 +1,23 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
-import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import { useTheme } from '../../context/ThemeContext';
+import Animated, { FadeInUp, FadeInRight, FadeInDown } from 'react-native-reanimated';
 import { Calendar } from 'react-native-calendars';
-import { useTasks } from '../../context/TaskContext';
+import { useTasks, TaskItem } from '../../context/TaskContext';
 
 
 
 export default function CalendarScreen() {
+  const { theme, isDark } = useTheme();
   const { tasks, selectedDate, setSelectedDate, toggleTask } = useTasks();
 
   const selectedTasks = useMemo(
-    () => tasks.filter((task) => task.dueDate === selectedDate),
+    () => tasks.filter((task: { dueDate: any; }) => task.dueDate === selectedDate),
     [selectedDate, tasks]
   );
 
@@ -22,7 +26,7 @@ export default function CalendarScreen() {
     const marks: any = {};
 
     // Task indicators
-    tasks.forEach(task => {
+    tasks.forEach((task: { dueDate: string | number; priority: string; }) => {
       if (!marks[task.dueDate]) {
         marks[task.dueDate] = {
           marked: true,
@@ -43,7 +47,7 @@ export default function CalendarScreen() {
   }, [tasks, selectedDate]);
 
   const stats = useMemo(() => {
-    const completed = selectedTasks.filter(t => t.completed).length;
+    const completed = selectedTasks.filter((t: { completed: any; }) => t.completed).length;
     return {
       completed,
       total: selectedTasks.length,
@@ -52,45 +56,53 @@ export default function CalendarScreen() {
   }, [selectedTasks]);
 
   return (
-    <View style={styles.safe}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.background }]}>
         <View>
-          <Text style={styles.yearText}>{new Date(selectedDate).getFullYear()}</Text>
-          <Text style={styles.monthText}>
+          <Text style={[styles.yearText, { color: isDark ? '#A78BFA' : '#6366F1' }]}>
+            {new Date(selectedDate).getFullYear()}
+          </Text>
+          <Text style={[styles.monthText, { color: theme.text }]}>
             {new Date(selectedDate).toLocaleDateString(undefined, { month: 'long' })}
           </Text>
         </View>
         <Pressable
           onPress={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
-          style={styles.todayBtn}
+          style={[styles.todayBtn, { backgroundColor: isDark ? '#1E1B4B' : '#EEF2FF' }]}
         >
-          <Text style={styles.todayBtnText}>Today</Text>
+          <Text style={[styles.todayBtnText, { color: isDark ? '#A78BFA' : '#6366F1' }]}>Today</Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInUp} style={styles.calendarCard}>
+        <Animated.View
+          entering={FadeInDown.delay(100).springify()}
+          style={[styles.calendarCard, {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: isDark ? '#000' : '#6366F1'
+          }]}
+        >
           <Calendar
             current={selectedDate}
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             markedDates={markedDates}
-            // ... props
             theme={{
-              backgroundColor: '#ffffff',
-              calendarBackground: '#ffffff',
-              textSectionTitleColor: '#9CA3AF',
-              selectedDayBackgroundColor: '#6366F1',
+              backgroundColor: theme.surface,
+              calendarBackground: theme.surface,
+              textSectionTitleColor: theme.subtext,
+              selectedDayBackgroundColor: isDark ? '#8B5CF6' : '#6366F1',
               selectedDayTextColor: '#ffffff',
-              todayTextColor: '#6366F1',
-              dayTextColor: '#1F2937',
-              textDisabledColor: '#E5E7EB',
-              dotColor: '#6366F1',
+              todayTextColor: isDark ? '#A78BFA' : '#6366F1',
+              dayTextColor: theme.text,
+              textDisabledColor: isDark ? '#334155' : '#E5E7EB',
+              dotColor: isDark ? '#A78BFA' : '#6366F1',
               selectedDotColor: '#ffffff',
-              arrowColor: '#6366F1',
-              monthTextColor: '#1F2937',
-              indicatorColor: '#6366F1',
+              arrowColor: isDark ? '#A78BFA' : '#6366F1',
+              monthTextColor: theme.text,
+              indicatorColor: isDark ? '#A78BFA' : '#6366F1',
               textDayFontWeight: '600',
               textMonthFontWeight: '800',
               textDayHeaderFontWeight: '700',
@@ -105,11 +117,11 @@ export default function CalendarScreen() {
         <View style={styles.agendaSection}>
           <View style={styles.agendaHeader}>
             <View>
-              <Text style={styles.agendaTitle}>
+              <Text style={[styles.agendaTitle, { color: theme.text }]}>
                 {new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'long' })}
               </Text>
               {selectedTasks.length > 0 && (
-                <Text style={styles.agendaSubtitle}>
+                <Text style={[styles.agendaSubtitle, { color: theme.subtext }]}>
                   {stats.completed}/{stats.total} tasks completed
                 </Text>
               )}
@@ -125,21 +137,27 @@ export default function CalendarScreen() {
             </Animated.View>
           ) : (
             <View style={styles.agendaList}>
-              {selectedTasks.map((task, index) => (
+              {selectedTasks.map((task: TaskItem, index: number) => (
                 <Animated.View key={task.id} entering={FadeInRight.delay(index * 100)}>
-                  <Pressable onPress={() => toggleTask(task.id)} style={styles.agendaItem}>
+                  <Pressable
+                    onPress={() => toggleTask(task.id)}
+                    style={[styles.agendaItem, {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border
+                    }]}
+                  >
                     <View style={[styles.mark, { backgroundColor: task.priority === 'High' ? '#DC2626' : (task.priority === 'Medium' ? '#6366F1' : '#059669') }]} />
                     <View style={styles.itemBody}>
-                      <Text style={[styles.itemText, task.completed && styles.itemTextDone]}>{task.title}</Text>
+                      <Text style={[styles.itemText, { color: theme.text }, task.completed && styles.itemTextDone]}>{task.title}</Text>
                       <View style={styles.itemMetaRow}>
-                        <View style={[styles.categoryPill, { backgroundColor: '#F3F4F6' }]}>
-                          <Text style={styles.categoryPillText}>{task.category}</Text>
+                        <View style={[styles.categoryPill, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
+                          <Text style={[styles.categoryPillText, { color: theme.subtext }]}>{task.category}</Text>
                         </View>
-                        <Text style={styles.itemMetaDot}>•</Text>
-                        <Text style={styles.itemMeta}>{task.priority}</Text>
+                        <Text style={[styles.itemMetaDot, { color: theme.border }]}>•</Text>
+                        <Text style={[styles.itemMeta, { color: theme.subtext }]}>{task.priority}</Text>
                       </View>
                     </View>
-                    <View style={[styles.checkCircle, task.completed && styles.checkCircleDone]}>
+                    <View style={[styles.checkCircle, task.completed && styles.checkCircleDone, { borderColor: theme.border }]}>
                       {task.completed && <Feather name="check" size={12} color="#FFF" />}
                     </View>
                   </Pressable>
@@ -149,7 +167,7 @@ export default function CalendarScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -204,12 +222,11 @@ const styles = StyleSheet.create({
   },
   calendarCard: {
     marginHorizontal: 16,
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 8,
-    shadowColor: '#6366F1',
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 4,
   },
@@ -271,8 +288,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,

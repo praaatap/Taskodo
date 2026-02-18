@@ -1,16 +1,19 @@
 import { Feather } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TaskProvider } from '../../context/TaskContext';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <TaskProvider>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            height: 64,
-            paddingBottom: 10,
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
             paddingTop: 8,
             backgroundColor: '#FFFFFF',
             borderTopWidth: 1,
@@ -30,12 +33,8 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Tasks',
-            tabBarIcon: ({ color, focused }) => (
-              <Feather
-                name="check-square"
-                size={22}
-                color={color}
-              />
+            tabBarIcon: ({ color }) => (
+              <Feather name="check-square" size={22} color={color} />
             ),
           }}
         />
@@ -44,12 +43,8 @@ export default function TabLayout() {
           name="two"
           options={{
             title: 'Calendar',
-            tabBarIcon: ({ color, focused }) => (
-              <Feather
-                name="calendar"
-                size={22}
-                color={color}
-              />
+            tabBarIcon: ({ color }) => (
+              <Feather name="calendar" size={22} color={color} />
             ),
           }}
         />
@@ -58,12 +53,18 @@ export default function TabLayout() {
           name="stats"
           options={{
             title: 'Stats',
-            tabBarIcon: ({ color, focused }) => (
-              <Feather
-                name="pie-chart"
-                size={22}
-                color={color}
-              />
+            tabBarIcon: ({ color }) => (
+              <Feather name="pie-chart" size={22} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => (
+              <Feather name="user" size={22} color={color} />
             ),
           }}
         />

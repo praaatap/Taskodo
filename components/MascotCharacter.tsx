@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { MascotMood } from '@/context/TaskContext';
+import { MascotMood } from '../context/TaskContext';
 
 type MascotProps = {
   mood: MascotMood;
@@ -64,7 +64,7 @@ export function MascotCharacter({ mood, message }: MascotProps) {
       { scale: scale.value },
       { rotate: `${rotation.value}deg` },
       { translateY: translateY.value },
-    ],
+    ] as any,
   }));
 
   return (
@@ -85,11 +85,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 20,
     marginHorizontal: 24,
-    marginVertical: 6,
+    marginVertical: 4,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
